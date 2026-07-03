@@ -237,6 +237,7 @@ label{display:block;color:var(--muted);font-size:13px;margin:11px 0 5px}.field{w
 <button class="save" id="save">공수 기록 저장하기</button><div class="toast" id="toast">저장했습니다</div>
 <nav class="bottom-nav"><button class="nav-btn active" data-page="ledgerPage"><i>🏠</i><span data-nav="ledger">홈</span></button><button class="nav-btn" data-page="jobsPage"><i>📍</i><span data-nav="jobs">일자리</span></button><button class="nav-btn" data-page="chatPage"><i>💬</i><span data-nav="chat">채팅</span></button><button class="nav-btn" data-page="talentPage"><i>👷</i><span data-nav="talent">내정보</span></button></nav>
 </div>
+<script src="ui-translations.js"></script>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],won=n=>Math.round(+n||0).toLocaleString("ko-KR")+"원";
 let records=JSON.parse(localStorage.getItem("workRecords")||"[]"),daily=+(localStorage.getItem("dailyPay")||150000),chosen=1,rating="",view=new Date();view.setDate(1);
@@ -329,15 +330,42 @@ function renderMessages(){let msgs=JSON.parse(localStorage.getItem(chatKey())||"
 $$(".chat-person").forEach(p=>p.onclick=()=>openChat(p.dataset.name));$("#chatBack").onclick=()=>{$("#chatRoom").style.display="none";$("#chatList").style.display="block"};
 $("#sendChat").onclick=()=>{const text=$("#chatInput").value.trim();if(!text)return;let msgs=JSON.parse(localStorage.getItem(chatKey())||"null")||[{me:false,text:"안녕하세요. 일자리 보고 문의주셨나요?"}];msgs.push({me:true,text});localStorage.setItem(chatKey(),JSON.stringify(msgs));$("#chatInput").value="";renderMessages()};$("#chatInput").onkeydown=e=>{if(e.key==="Enter")$("#sendChat").click()};
 $("#publishJob").onclick=()=>{const site=$("#postSite").value.trim(),pay=+$("#postPay").value,start=$("#postStart").value,end=$("#postEnd").value||start;if(!site||!pay||!start)return alert("현장명, 일당, 근무 시작일을 입력해주세요.");postedJobs.unshift({id:Date.now().toString(),site,region:$("#postRegion").value,address:$("#postAddress").value.trim(),type:$("#postType").value,language:$("#postLanguage").value,people:+$("#postPeople").value||1,pay,payday:$("#postPayday").value.trim()||"협의",start,end,time:$("#postTime").value,work:+$("#postWork").value||1,memo:$("#postMemo").value.trim(),distance:"등록한 글"});localStorage.setItem("postedJobs",JSON.stringify(postedJobs));$("#postResult").style.display="block";setTimeout(()=>{showPage("jobsPage");renderJobs()},900)};
-const translations={
- ko:{title:"내 공수 수첩 👷",sub:"일한 날, 받을 돈, 현장 기억까지 한곳에",nav:["홈","일자리","채팅","내정보"]},
- zh:{title:"我的工时记录 👷",sub:"工作日期、工资和工地记录集中管理",nav:["首页","找工作","聊天","我的"]},
- vi:{title:"Sổ công của tôi 👷",sub:"Ngày làm, tiền công và công trường ở một nơi",nav:["Trang chủ","Việc làm","Trò chuyện","Cá nhân"]},
- fil:{title:"Aking Work Log 👷",sub:"Araw ng trabaho, sahod at jobsite sa isang lugar",nav:["Home","Trabaho","Chat","Profile"]},
- ru:{title:"Мой табель 👷",sub:"Рабочие дни, оплата и объекты в одном месте",nav:["Главная","Вакансии","Чат","Профиль"]},
- uk:{title:"Мій табель 👷",sub:"Робочі дні, оплата й об’єкти в одному місці",nav:["Головна","Робота","Чат","Профіль"]}
-};
-function setLanguage(code){const t=translations[code]||translations.ko;$("#appTitle").textContent=t.title;$("#appSub").textContent=t.sub;$$("[data-nav]").forEach((el,i)=>el.textContent=t.nav[i]);localStorage.setItem("appLanguage",code)}
+let currentLanguage="ko";
+const textSources=new Map(),attributeSources=new Map();
+function translatePhrase(text,dict){
+ return text.replace(/[가-힣][가-힣0-9 ·/,+~!?().:%₩\-]*/g,part=>{
+  const lead=part.match(/^\s*/)?.[0]||"",tail=part.match(/\s*$/)?.[0]||"",key=part.trim();
+  return lead+(dict[key]||key)+tail
+ })
+}
+function translateDocument(root=document.body){
+ const dict=window.UI_TRANSLATIONS?.[currentLanguage]||{};
+ root.querySelectorAll("*").forEach(el=>{
+  if(el.closest("#appLanguage")||["SCRIPT","STYLE"].includes(el.tagName))return;
+  el.childNodes.forEach(node=>{
+   if(node.nodeType!==3)return;
+   if(!textSources.has(node)&&/[가-힣]/.test(node.nodeValue))textSources.set(node,node.nodeValue);
+   const source=textSources.get(node);if(!source)return;
+   const next=currentLanguage==="ko"?source:translatePhrase(source,dict);
+   if(node.nodeValue!==next)node.nodeValue=next
+  });
+  ["placeholder","title","aria-label"].forEach(attr=>{
+   const value=el.getAttribute(attr);if(!value)return;
+   let saved=attributeSources.get(el)||{};
+   if(saved[attr]===undefined&&/[가-힣]/.test(value)){saved[attr]=value;attributeSources.set(el,saved)}
+   if(saved[attr]!==undefined){const next=currentLanguage==="ko"?saved[attr]:translatePhrase(saved[attr],dict);if(value!==next)el.setAttribute(attr,next)}
+  })
+ })
+}
+const languageObserver=new MutationObserver(changes=>{
+ if(currentLanguage==="ko")return;
+ changes.forEach(change=>change.addedNodes.forEach(node=>{
+  if(node.nodeType===1)translateDocument(node);
+  else if(node.nodeType===3&&node.parentElement)translateDocument(node.parentElement)
+ }))
+});
+languageObserver.observe(document.body,{childList:true,subtree:true});
+function setLanguage(code){currentLanguage=code;document.documentElement.lang=code==="fil"?"tl":code;translateDocument();localStorage.setItem("appLanguage",code)}
 $("#appLanguage").value=localStorage.getItem("appLanguage")||"ko";$("#appLanguage").onchange=e=>setLanguage(e.target.value);setLanguage($("#appLanguage").value);
 const profileFields=["workerName","workerStatus","careerYears","minimumRate","primarySpecialty","workerSkills","workerRegion","availableDate","needStay","needMeal","workerLanguages","transport","certificates","preHealthDate","specialHealthDate","safetyEdu","identityVerified","visaType","workEligibility","sensitiveConsent","workerIntro"];
 let workerProfile=JSON.parse(localStorage.getItem("workerProfile")||"{}"),workHistories=JSON.parse(localStorage.getItem("workHistories")||"[]");
