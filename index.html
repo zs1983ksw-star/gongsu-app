@@ -242,6 +242,9 @@ label{display:block;color:var(--muted);font-size:13px;margin:11px 0 5px}.field{w
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],won=n=>Math.round(+n||0).toLocaleString("ko-KR")+"원";
 let records=JSON.parse(localStorage.getItem("workRecords")||"[]"),daily=+(localStorage.getItem("dailyPay")||150000),chosen=1,rating="",view=new Date();view.setDate(1);
 const localDate=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)},esc=s=>{const d=document.createElement("div");d.textContent=s||"";return d.innerHTML};
+const languageLocales={ko:"ko-KR",zh:"zh-CN",vi:"vi-VN",fil:"fil-PH",ru:"ru-RU",uk:"uk-UA"};
+const formatYearMonth=(year,month)=>new Intl.DateTimeFormat(languageLocales[currentLanguage]||"ko-KR",{year:"numeric",month:"long"}).format(new Date(year,month,1));
+const formatMonthKey=key=>{const [year,month]=key.split("-").map(Number);return formatYearMonth(year,month-1)};
 $("#date").value=localDate(new Date());$("#daily").value=daily;
 function amount(r){return r.work*(r.daily||daily)+(+r.extraPay||0)-(+r.deduction||0)}
 function currentRate(){return +$("#siteDaily").value||daily}
@@ -249,7 +252,7 @@ function updatePay(){$("#todayPay").textContent=won(chosen*currentRate()+(+$("#e
 function persist(){localStorage.setItem("workRecords",JSON.stringify(records))}
 function render(){
  const y=view.getFullYear(),m=view.getMonth(),prefix=`${y}-${String(m+1).padStart(2,"0")}`,rows=records.filter(r=>r.date?.startsWith(prefix)).sort((a,b)=>b.date.localeCompare(a.date));
- $("#monthLabel").textContent=`${y}년 ${m+1}월`;const works=rows.reduce((s,r)=>s+(+r.work||0),0),total=rows.reduce((s,r)=>s+amount(r),0),paid=rows.filter(r=>r.paid).reduce((s,r)=>s+amount(r),0);
+ $("#monthLabel").textContent=formatYearMonth(y,m);const works=rows.reduce((s,r)=>s+(+r.work||0),0),total=rows.reduce((s,r)=>s+amount(r),0),paid=rows.filter(r=>r.paid).reduce((s,r)=>s+amount(r),0);
  $("#totalWork").textContent=`${works.toFixed(works%1?1:0)}공수`;$("#totalPay").textContent=won(total);$("#paidTotal").textContent=won(paid);$("#unpaidTotal").textContent=won(total-paid);$("#workDays").textContent=`${rows.length}일`;
  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),today=localDate(new Date());let cells=Array(first).fill('<div class="day blank"></div>');
  for(let d=1;d<=days;d++){const date=`${prefix}-${String(d).padStart(2,"0")}`,r=rows.find(x=>x.date===date),feel=r?.rating||(r?.liked?"like":"");cells.push(`<div class="day ${date===today?"today":""} ${r&&!r.paid?"unpaid":""}"><b>${d}</b>${feel==="like"?"<em>♥</em>":feel==="dislike"?"<em>▼</em>":""}${r?`<span>${r.work.toFixed(1)}공수</span>`:""}</div>`)}$("#calendar").innerHTML=cells.join("");
@@ -281,7 +284,7 @@ function renderBenefitStatus(){
  const cutoffText=localDate(cutoff),recent=dates.filter(d=>d>=cutoffText),count=recent.length,remaining=Math.max(0,180-count),percent=Math.min(100,count/180*100);
  $("#allWorkDays").textContent=`${dates.length}일`;$("#insuredDays").textContent=`${count}일`;$("#remainingDays").textContent=`${remaining}일`;$("#benefitProgress").style.width=`${percent}%`;
  $("#benefitText").textContent=count>=180?`기록상 180일 기준을 충족했습니다. 고용보험 신고내역을 확인하세요.`:`최근 18개월 기록 기준 ${count}일이며, 180일까지 약 ${remaining}일 남았습니다.`;
- const groups={};recent.forEach(d=>{const m=d.slice(0,7);groups[m]=(groups[m]||0)+1});$("#benefitMonths").innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([m,n])=>`<span>${m.replace("-","년 ")}월 ${n}일</span>`).join("")||"<span>월별 기록 없음</span>";
+ const groups={};recent.forEach(d=>{const m=d.slice(0,7);groups[m]=(groups[m]||0)+1});$("#benefitMonths").innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([m,n])=>`<span>${formatMonthKey(m)} · ${n}일</span>`).join("")||"<span>월별 기록 없음</span>";
  if(!dates.length){$("#recentWorkGuide").textContent="최근 근로내역이 없습니다.";return}
  const last=new Date(dates[dates.length-1]+"T00:00:00"),gap=Math.floor((new Date(localDate(today)+"T00:00:00")-last)/86400000);
  $("#recentWorkGuide").textContent=gap>=14?`마지막 기록 후 ${gap}일이 지났습니다. 건설일용근로자의 ‘신청 전 14일 연속 근로내역 없음’ 조건은 기록상 충족합니다.`:`마지막 기록 후 ${gap}일째입니다. 14일 연속 무근로 확인까지 ${14-gap}일 남았습니다.`;
@@ -370,7 +373,7 @@ const languageObserver=new MutationObserver(changes=>{
  })
 });
 languageObserver.observe(document.body,{childList:true,characterData:true,subtree:true});
-function setLanguage(code){currentLanguage=code;document.documentElement.lang=code==="fil"?"tl":code;translateDocument();localStorage.setItem("appLanguage",code)}
+function setLanguage(code){currentLanguage=code;document.documentElement.lang=code==="fil"?"tl":code;translateDocument();$("#monthLabel").textContent=formatYearMonth(view.getFullYear(),view.getMonth());renderBenefitStatus();localStorage.setItem("appLanguage",code)}
 $("#appLanguage").value=localStorage.getItem("appLanguage")||"ko";$("#appLanguage").onchange=e=>setLanguage(e.target.value);setLanguage($("#appLanguage").value);
 const profileFields=["workerName","workerStatus","careerYears","minimumRate","primarySpecialty","workerSkills","workerRegion","availableDate","needStay","needMeal","workerLanguages","transport","certificates","preHealthDate","specialHealthDate","safetyEdu","identityVerified","visaType","workEligibility","sensitiveConsent","workerIntro"];
 let workerProfile=JSON.parse(localStorage.getItem("workerProfile")||"{}"),workHistories=JSON.parse(localStorage.getItem("workHistories")||"[]");
