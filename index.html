@@ -334,8 +334,9 @@ let currentLanguage="ko";
 const textSources=new Map(),attributeSources=new Map();
 function translatePhrase(text,dict){
  return text.replace(/[가-힣][가-힣0-9 ·/,+~!?().:%₩\-]*/g,part=>{
-  const lead=part.match(/^\s*/)?.[0]||"",tail=part.match(/\s*$/)?.[0]||"",key=part.trim();
-  return lead+(dict[key]||key)+tail
+ const lead=part.match(/^\s*/)?.[0]||"",tail=part.match(/\s*$/)?.[0]||"",key=part.trim();
+  const translated=dict[key]||key.replace(/[가-힣]+/g,word=>dict[word]||word);
+  return lead+translated+tail
  })
 }
 function translateDocument(root=document.body){
