@@ -1,0 +1,19 @@
+{
+  "name": "내 공수 수첩 - 건설근로자 플랫폼",
+  "short_name": "내 공수",
+  "description": "건설근로자의 공수, 급여, 현장과 일자리를 관리하는 시험판",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#17243b",
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
