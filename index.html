@@ -237,7 +237,7 @@ label{display:block;color:var(--muted);font-size:13px;margin:11px 0 5px}.field{w
 <button class="save" id="save">공수 기록 저장하기</button><div class="toast" id="toast">저장했습니다</div>
 <nav class="bottom-nav"><button class="nav-btn active" data-page="ledgerPage"><i>🏠</i><span data-nav="ledger">홈</span></button><button class="nav-btn" data-page="jobsPage"><i>📍</i><span data-nav="jobs">일자리</span></button><button class="nav-btn" data-page="chatPage"><i>💬</i><span data-nav="chat">채팅</span></button><button class="nav-btn" data-page="talentPage"><i>👷</i><span data-nav="talent">내정보</span></button></nav>
 </div>
-<script src="ui-translations.js?v=4"></script>
+<script src="ui-translations.js?v=5"></script>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],won=n=>Math.round(+n||0).toLocaleString("ko-KR")+"원";
 let records=JSON.parse(localStorage.getItem("workRecords")||"[]"),daily=+(localStorage.getItem("dailyPay")||150000),chosen=1,rating="",view=new Date();view.setDate(1);
