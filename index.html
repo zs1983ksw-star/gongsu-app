@@ -340,7 +340,8 @@ function translatePhrase(text,dict){
 }
 function translateDocument(root=document.body){
  const dict=window.UI_TRANSLATIONS?.[currentLanguage]||{};
- root.querySelectorAll("*").forEach(el=>{
+ const elements=[...(root.nodeType===1?[root]:[]),...root.querySelectorAll("*")];
+ elements.forEach(el=>{
   if(el.closest("#appLanguage")||["SCRIPT","STYLE"].includes(el.tagName))return;
   el.childNodes.forEach(node=>{
    if(node.nodeType!==3)return;
@@ -359,12 +360,15 @@ function translateDocument(root=document.body){
 }
 const languageObserver=new MutationObserver(changes=>{
  if(currentLanguage==="ko")return;
- changes.forEach(change=>change.addedNodes.forEach(node=>{
-  if(node.nodeType===1)translateDocument(node);
-  else if(node.nodeType===3&&node.parentElement)translateDocument(node.parentElement)
- }))
+ changes.forEach(change=>{
+  if(change.type==="characterData"&&change.target.parentElement)translateDocument(change.target.parentElement);
+  change.addedNodes.forEach(node=>{
+   if(node.nodeType===1)translateDocument(node);
+   else if(node.nodeType===3&&node.parentElement)translateDocument(node.parentElement)
+  })
+ })
 });
-languageObserver.observe(document.body,{childList:true,subtree:true});
+languageObserver.observe(document.body,{childList:true,characterData:true,subtree:true});
 function setLanguage(code){currentLanguage=code;document.documentElement.lang=code==="fil"?"tl":code;translateDocument();localStorage.setItem("appLanguage",code)}
 $("#appLanguage").value=localStorage.getItem("appLanguage")||"ko";$("#appLanguage").onchange=e=>setLanguage(e.target.value);setLanguage($("#appLanguage").value);
 const profileFields=["workerName","workerStatus","careerYears","minimumRate","primarySpecialty","workerSkills","workerRegion","availableDate","needStay","needMeal","workerLanguages","transport","certificates","preHealthDate","specialHealthDate","safetyEdu","identityVerified","visaType","workEligibility","sensitiveConsent","workerIntro"];
